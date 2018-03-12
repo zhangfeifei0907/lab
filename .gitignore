@@ -1,0 +1,13 @@
+# Created by .ignore support plugin (hsz.mobi)
+.gitignore
+.idea/.name
+.idea/encodings.xml
+.idea/lab.iml
+.idea/misc.xml
+.idea/workspace.xml
+component/
+node_modules/
+output/
+package-lock.json
+package.json
+setting/
