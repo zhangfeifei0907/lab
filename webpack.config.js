@@ -2,43 +2,60 @@
  * Created by feifei on 18/3/11.
  */
 const path = require('path');
-const ENTORY=path.resolve('./entry');
-const DIST=path.resolve('./dist');
-console.log(__dirname);
-console.log(__filename);
-console.log('./-->',path.resolve('./'));
-console.log('./-->',path.resolve('./entry'));
-console.log('./-->',path.resolve('./entry/'));
+const webpack=require('webpack');
+var ROOT_PATH = path.resolve(__dirname);
+
+var ASSETS_PATH = path.resolve(ROOT_PATH, 'assets');
+var ENTRY_PATH = path.resolve(ROOT_PATH, 'assets/entry');
+var BUILD = path.resolve(ROOT_PATH, 'build');
+
+
 const config={
+    mode:'development',
     entry:{
-        index:ENTORY+'/index.js',
-        index22:ENTORY+'/index2.js'
+        vendor: [
+            'react',
+            'react-dom'
+            ],
+        login:[
+            path.resolve(ENTRY_PATH, 'login.js')
+        ]
     },
     output:{
-        path:DIST,
+        path:BUILD,
         filename:'[name].bundle.js'
     },
+    devServer:{
+        hot:true,
+
+    },
+    devtool: false,
+    plugins:[
+
+       new webpack.NamedModulesPlugin(),
+        new webpack.HotModuleReplacementPlugin()
+    ],
+    cache: true,
     module:{
         rules: [
             {
                 test: /\.js?$/,
-                include: [
-                    path.resolve(__dirname, "entry")
-                ],
-                //exclude: [
-                //    path.resolve(__dirname, "app/demo-files")
-                //],
-                // these are matching conditions, each accepting a regular expression or string
-                // test and include have the same behavior, both must be matched
-                // exclude must not be matched (takes preferrence over test and include)
-                // Best practices:
-                // - Use RegExp only in test and for filename matching
-                // - Use arrays of absolute paths in include and exclude
-                // - Try to avoid exclude and prefer include
-
                 loader: "babel-loader",
                 // options for the loader
             },
+            {
+                test: /\.less$/,
+                use: [{
+                    loader: "style-loader" // creates style nodes from JS strings
+                }, {
+                    loader: "css-loader" // translates CSS into CommonJS
+                },
+                    {
+                    loader: "less-loader",options: { javascriptEnabled: true } // compiles Less to CSS
+                }],
+
+            },
+
         ]
     }
 };
