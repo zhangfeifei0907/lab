@@ -41,30 +41,75 @@ class Login extends React.Component{
     }
     submit(){
         //console.log(this.state);
-        //console.log(process);
         let {data,view}=this.state;
-        let url='';
-        console.log('url',url);
-        //api.api();
+        let this_=this;
+        //console.log('url',url);
 
-        this.setState({
-            loading:true
-        });
-        switch (view){
-            case 'register':
-                if(data.password!=data.t_password){
-                    message.error('两次输入的密码不一致，请重新输入',2);
-                    return false;
+
+        //register
+        if(view=='register'){
+            if(data.password!=data.t_password){
+                message.error('两次输入的密码不一致，请重新输入',2);
+                return false;
+            }
+            this.setState({
+                loading:true
+            });
+            http.post(api.user_add,data).then((d)=>{
+                console.log('fetch data',d);
+                this_.setState({
+                    loading:false
+                });
+                if(d.errcode!='0'){
+                    message.error(d.errmsg);
                 }
-                url=api.user_add;
-                break;
-            case 'sign':
-                url=api.user;
-                break;
+                else {
+                    message.success('成功注册！');
+                    localStorage.clear();
+                    localStorage.setItem("user_info",JSON.stringify(d.data.user_info));
+                    if(d.data.token!=undefined && d.data.token !=null){
+                        localStorage.setItem("token",JSON.stringify(d.data.token));
+                    }
+                    window.location.href=window.location.href.replace(window.location.pathname,'/index.html');
+                }
+
+            }).catch((err)=>{
+                this_.setState({
+                    loading:false
+                });
+                console.log('login err',err);
+            });
         }
-        http.post(url,data).then((json)=>{
-            console.log('fetch data',json);
-        });
+
+        //sign
+        if(view=='sign'){
+            this.setState({
+                loading:true
+            });
+
+
+            http.post(api.user,data).then((d)=>{
+                //console.log('fetch data',d);
+                this_.setState({
+                    loading:false
+                });
+                if(d.errcode!='0'){
+                    message.error(d.errmsg);
+                }
+                else {
+                    message.success('成功登录！');
+                    localStorage.clear();
+                    localStorage.setItem("user_info",JSON.stringify(d.data.user_info));
+                    if(d.data.token!=undefined && d.data.token !=null){
+                        localStorage.setItem("token",JSON.stringify(d.data.token));
+                    }
+                    window.location.href=window.location.href.replace(window.location.pathname,'/index.html');
+                }
+
+            }).catch((err)=>{
+                console.log('login err',err);
+            });
+        }
 
 
 
@@ -85,11 +130,11 @@ class Login extends React.Component{
         }
         this.setState({
             view:view_text
-        })
+        });
     }
     render(){
         let { data,loading,view }=this.state;
-        console.log('state',this.state);
+        //console.log('state',this.state);
         let view_text='';
         let sign_text='';
         let confirm_pwd=null;
@@ -108,6 +153,7 @@ class Login extends React.Component{
                 sign_text='登录';
                 break;
         }
+
         return(
             <div>
                 <div className="login_form">

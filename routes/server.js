@@ -4,8 +4,9 @@
 //const http=require('http');
 const mysql=require('mysql');
 const express=require('express');
-const bodyParser = require('body-parser')
-const API=require('../component/api').express_api;
+const jwt=require('jsonwebtoken');
+const bodyParser = require('body-parser');
+const API=require('../assets/component/api').express_api;
 let app=express();
 let con=mysql.createConnection({
     host:'localhost',
@@ -25,36 +26,7 @@ con.connect(function(err){
 
     }
 });
-app.use( bodyParser.json() );       // to support JSON-encoded bodies
-app.use( bodyParser.urlencoded({ extended: true }) ); // to support URL-encoded bodies
-app.use(bodyParser.text());
-//requestHandle=(req,res)=>{
-//    let json = JSON.stringify({
-//        say:'hello world',
-//        ss:req.method
-//    });
-//    console.log(req.method);
-//    if (req.method === 'GET' && req.url === '/test1') {
-//        // do something
-//        json=JSON.stringify({say:'1'});
-//    }
-//
-//    if (req.method === 'GET' && req.url === '/test2') {
-//        // do something
-//        json=JSON.stringify({say:'2'});
-//
-//    }
-//
-//    if (req.method === 'POST' && req.url === '/test3') {
-//        // do something
-//        json=JSON.stringify({say:'3'});
-//
-//    }
-//
-//
-//    res.end(json);
-//};
-//
+
 app.all('*', function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Content-Type");
@@ -63,53 +35,184 @@ app.all('*', function(req, res, next) {
     res.header("Content-Type", "application/json;charset=utf-8");
     next();
 });
-//
-//app.post(API.user,function(req,resp){
-//    //about mysql
-//    console.log('http method:',req.method);
-//    con.query('SELECT * FROM user',function(err,rows,fields){
-//        if(!!err){
-//            console.log('error in the query');
-//        }
-//        else {
-//            console.log('success query');
-//            console.log(rows);
-//
-//        }
-//    });
-//    let json=JSON.stringify({say:'2'});
-//    //resp.end(json);
-//});
-app.post(API.user_add,function(req,resp){
-    //about mysql
-    //console.log('http req',req);
-    console.log('http req body=======>',req.body);
-    let d=req.body;
-    //>insert into worker values(‘tom’,’tom@yahoo.com’),
-    //let sql='INSERT INTO user ("id","name","email","phone","create_time","password") VALUES ('+null+','+ d.name+','+ d.email+','+ d.phone+','+ d.create_time+','+ d.password+')';
-    //let sql='INSERT INTO user ("email","password") VALUES ('+d.email+','+ d.password+')';
-    let sql='INSERT INTO user SET ?';
-    let post={email:d.email,password:d.password};
-    console.log('sql',sql,post);
-    //sql='SELECT * FROM user';
-    //INSERT INTO `focus`.`user` (`name`, `email`, `phone`) VALUES ('ddd', 'd@d.con', 'ss');
-    con.query(sql,post,function(err,rows,fields){
-        if(err){
-            console.log('error in the query');
+
+app.use( bodyParser.json() );       // to support JSON-encoded bodies
+app.use( bodyParser.urlencoded({ extended: true }) ); // to support URL-encoded bodies
+app.use(bodyParser.text());
+
+
+
+/*  response format
+
+ {
+     errcode:'50001',
+     errmsg:'用户邮箱已存在',
+     data:{
+        token:
+     }
+ }
+
+ */
+//token key=focus_secretkey
+
+//format of token
+//Authorization:Bearer <access_token>
+
+//中间件 检验token
+function verifyToken(req,res,next){
+    //get auth header value
+    const bearerHeader = req.headers['authorization'];
+    //check if bearer is undefined
+    if(typeof bearerHeader !== 'undefined'){
+        const bearer = bearerHeader.split(' ');
+        const bearerToken=bearer[1];
+        //set the token
+        req.token=bearerToken;
+        //next middleware
+        next();
+
+    }else {
+        res.sendStatus(403);
+    }
+
+}
+
+
+//user login
+app.post(API.user, function (req, resp) {
+    let d = req.body;
+    console.log('http method:', req.method);
+    let sql = `SELECT * FROM user where email='${d.email}' && password='${d.password}'`;
+    console.log(sql);
+    con.query(sql, function (err, rows) {
+        if (!!err) {
+            console.log('err');
+            console.log(err);
+            return resp.json({
+                errcode: -1,
+                errmsg: err.sqlMessage,
+                data: {}
+            });
         }
         else {
             console.log('success query');
-            //console.log(rows);
+            console.log(rows);
+            if (rows.length >= 1) {
+                jwt.sign({
+                    user_id: rows[0].id,
+                    user_name: rows[0].name,
+                    user_email: rows[0].email,
+                    user_phone: rows[0].phone,
+                }, 'focus_secretkey', (err, token)=> {
+                    if (err) {
+                        return resp.json({
+                            errcode: '407',
+                            errmsg: 'token create error',
+
+                        });
+                    }
+                    else {
+                        //console.log('token:',token);
+                        return resp.json({
+                            errcode: '0',
+                            errmsg: 'ok',
+                            data: {
+                                user_info: {
+                                    user_id: rows[0].id,
+                                    user_name: rows[0].name,
+                                    user_email: rows[0].email,
+                                    user_phone: rows[0].phone,
+                                    role: 1,
+                                },
+                                token: token
+                            }
+                        });
+                    }
+                });
+
+            }
+            else {
+                return resp.json({
+                    errcode: '50002',
+                    errmsg: '用户或密码错误',
+                    data: {}
+                });
+            }
 
         }
     });
-    let json=JSON.stringify({say:'success'});
-    resp.end(json);
 });
-//con.end(function(err){
-//    if(err){
-//        return;
-//    }
-//    console.log('connection end success');
-//});
+
+
+//user register
+app.post(API.user_add, function (req, resp) {
+    let d = req.body;
+    //check email exit
+    let check_sql = 'SELECT * FROM user WHERE email = ?';
+    con.query(check_sql, d.email, (err, rows, fields)=> {
+        if (!!err) {
+            //console.log(err);
+            return resp.json({
+                errcode: -1,
+                errmsg: err,
+                data: {}
+            });
+        }
+        console.log(rows);
+        // 如果有重複的email
+        if (rows.length >= 1) {
+            console.log('用户邮箱已存在');
+
+            return resp.json({
+                errcode: '50001',
+                errmsg: '用户邮箱已存在',
+                data: {}
+            });
+        } else {
+            //create user
+            let sql = 'INSERT INTO user SET ?';
+            let post = {email: d.email, password: d.password};
+            con.query(sql, post, function (err, result) {
+                if (!!err) {
+                    return resp.json({
+                        errcode: -1,
+                        errmsg: err,
+                        data: {}
+                    });
+                }
+                else {
+                    console.log('success insert result', result);
+                    con.query(`SELECT * FROM user WHERE id = ${result.insertId}`, function (err, new_user) {
+                        console.log('new_user====>', new_user);
+                        jwt.sign({
+                            user_id: new_user[0].id,
+                            user_name: new_user[0].name,
+                            user_email: new_user[0].email,
+                            user_phone: new_user[0].phone,
+                        }, 'focus_secretkey', (err, token)=> {
+                            if (!err) {
+                                return resp.json({
+                                    errcode: '0',
+                                    errmsg: 'ok',
+                                    data: {
+                                        user_info: {
+                                            user_id: new_user[0].id,
+                                            user_name: new_user[0].name,
+                                            user_email: new_user[0].email,
+                                            user_phone: new_user[0].phone,
+                                            role: 1,
+                                        },
+                                        token: token
+                                    }
+                                });
+                            }
+                        });
+                    });
+                }
+            });
+        }
+    });
+});
+
+
 app.listen(4000);

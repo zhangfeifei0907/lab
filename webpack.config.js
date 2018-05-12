@@ -19,6 +19,9 @@ const config={
             ],
         login:[
             path.resolve(ENTRY_PATH, 'login.js')
+        ],
+        app:[
+            path.resolve(ENTRY_PATH, 'app.js')
         ]
     },
     output:{
@@ -29,7 +32,7 @@ const config={
         hot:true,
 
     },
-    devtool: false,
+    devtool: '#source-map',
     plugins:[
 
        new webpack.NamedModulesPlugin(),

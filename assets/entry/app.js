@@ -2,10 +2,9 @@
  * Created by feifei on 18/3/11.
  */
 
-console.log('hi feifei');
 import React from 'react';
 import {render} from 'react-dom';
-class HelloMessage extends React.Component {
+class App extends React.Component {
     constructor(props){
         super(props);
         this.state={
@@ -20,16 +19,18 @@ class HelloMessage extends React.Component {
         }
     }
     add(){
-        let url='http://localhost:4000/all';
-        fetch(url,{mode: "no-cors"}).then(function(response) {
-            console.log('success',response);
-        }).then(function(data) {
-            console.log('success data',data);
-        }).catch(function(e) {
-            console.log("Oops, error",e);
-        });
+        //let url='http://localhost:4000/all';
+        //fetch(url,{mode: "no-cors"}).then(function(response) {
+        //    console.log('success',response);
+        //}).then(function(data) {
+        //    console.log('success data',data);
+        //}).catch(function(e) {
+        //    console.log("Oops, error",e);
+        //});
     }
     render() {
+        console.log('localStorage',localStorage);
+
         return (<div>
             <div>
                 <h1>to do list</h1>
@@ -38,5 +39,5 @@ class HelloMessage extends React.Component {
         </div>);
     }
 }
-render(<HelloMessage />, document.getElementById('app'));
+render(<App />, document.getElementById('app'));
 
