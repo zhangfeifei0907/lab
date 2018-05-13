@@ -26,11 +26,14 @@ const config={
     },
     output:{
         path:BUILD,
-        filename:'[name].bundle.js'
+        filename:'[name].bundle.js',
+
     },
     devServer:{
         hot:true,
-
+        historyApiFallback: {
+            index:'index.html'
+        }
     },
     devtool: '#source-map',
     plugins:[
