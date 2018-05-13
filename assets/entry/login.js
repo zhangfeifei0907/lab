@@ -68,9 +68,9 @@ class Login extends React.Component{
                     localStorage.clear();
                     localStorage.setItem("user_info",JSON.stringify(d.data.user_info));
                     if(d.data.token!=undefined && d.data.token !=null){
-                        localStorage.setItem("token",JSON.stringify(d.data.token));
+                        localStorage.setItem("token",d.data.token);
                     }
-                    window.location.href=window.location.href.replace(window.location.pathname,'/index.html');
+                    window.location.href=window.location.href.replace(window.location.pathname,'/');
                 }
 
             }).catch((err)=>{
@@ -99,11 +99,11 @@ class Login extends React.Component{
                 else {
                     message.success('成功登录！');
                     localStorage.clear();
-                    localStorage.setItem("user_info",d.data.user_info);
+                    localStorage.setItem("user_info",JSON.stringify(d.data.user_info));
                     if(d.data.token!=undefined && d.data.token !=null){
                         localStorage.setItem("token",d.data.token);
                     }
-                    window.location.href=window.location.href.replace(window.location.pathname,'/index.html');
+                    window.location.href=window.location.href.replace(window.location.pathname,'/');
                 }
 
             }).catch((err)=>{

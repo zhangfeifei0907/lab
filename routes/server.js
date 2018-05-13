@@ -2,8 +2,10 @@
  * Created by feifei on 2018/5/11.
  */
 //const http=require('http');
+const moment=require('moment');
 const mysql=require('mysql');
 const express=require('express');
+const cors=require('cors');
 const jwt=require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const API=require('../assets/component/api').express_api;
@@ -26,19 +28,22 @@ con.connect(function(err){
 
     }
 });
-
+//app.use(cors());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+//app.use( bodyParser );       // to support JSON-encoded bodies
 app.all('*', function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Content-Type");
+    res.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
     res.header("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,OPTIONS");
     res.header("X-Powered-By",' 3.2.1');
     res.header("Content-Type", "application/json;charset=utf-8");
     next();
 });
 
-app.use( bodyParser.json() );       // to support JSON-encoded bodies
-app.use( bodyParser.urlencoded({ extended: true }) ); // to support URL-encoded bodies
-app.use(bodyParser.text());
+
+//app.use( bodyParser.urlencoded({ extended: true }) ); // to support URL-encoded bodies
+//app.use(bodyParser.text());
 
 
 
@@ -60,7 +65,13 @@ app.use(bodyParser.text());
 
 //中间件 检验token
 function verifyToken(req,res,next){
+   // console.log('req.headers ',req.headers);
+   // console.log('==============================');
+   // console.log('type',typeof req.headers);//object
+
+
     //get auth header value
+
     const bearerHeader = req.headers['authorization'];
     //check if bearer is undefined
     if(typeof bearerHeader !== 'undefined'){
@@ -103,7 +114,7 @@ app.post(API.user, function (req, resp) {
                     user_name: rows[0].name,
                     user_email: rows[0].email,
                     user_phone: rows[0].phone,
-                }, 'focus_secretkey', (err, token)=> {
+                }, 'focus_secretkey', {expiresIn:'2d' },(err, token)=> {
                     if (err) {
                         return resp.json({
                             errcode: '407',
@@ -212,6 +223,104 @@ app.post(API.user_add, function (req, resp) {
             });
         }
     });
+});
+
+
+//classify_add
+app.post(API.classify_add,verifyToken,function(req,res){
+    jwt.verify(req.token,'focus_secretkey',(err,autoData)=>{
+        if(err){
+           return res.sendStatus(403);
+        }else {
+            console.log('autoData',autoData);
+            let sql=`SELECT * FROM classification where user_id = '${autoData.user_id}' && name='${req.body.name}'`;
+            con.query(sql,(err,rows)=>{
+                if (!!err) {
+                    return resp.json({
+                        errcode: -1,
+                        errmsg: err,
+                        data: {}
+                    });
+                }
+                else {
+                    if (rows.length >= 1) {
+
+                        return res.json({
+                            errcode: '60001',
+                            errmsg: '分类已存在',
+                            data: {}
+                        });
+                    } else {
+                        //create user
+                        let t_sql = 'INSERT INTO classification SET ?';
+                        var newDay = new Date();
+                        let post = {name: req.body.name, user_id:autoData.user_id,update_time:Date.parse(newDay)};
+                        console.log('post',post);
+
+                        con.query(t_sql, post, function (err, result) {
+                            if (!!err) {
+                                console.log('err',err);
+                                return res.json({
+                                    errcode: -1,
+                                    errmsg: err,
+                                    data: {}
+                                });
+                            }
+                            else {
+                                console.log('success insert result', result);
+                                con.query(`SELECT * FROM classification WHERE user_id = ${autoData.user_id} order by update_time desc`, function (err, all_classification) {
+                                    if (!err) {
+                                        return res.json({
+                                                errcode: '0',
+                                                errmsg: 'ok',
+                                                data: {
+                                                    classification: all_classification
+                                                }
+                                            });
+
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            })
+        }
+    });
+    //let d = req.body;
+
+});
+
+
+//classify_add
+app.get(API.classify,verifyToken,function(req,res){
+    jwt.verify(req.token,'focus_secretkey',(err,autoData)=>{
+        if(err){
+            return res.sendStatus(403);
+        }else {
+            console.log('autoData',autoData);
+            let sql=`SELECT * FROM classification where user_id = '${autoData.user_id}'`;
+            con.query(sql,(err,rows)=>{
+                if (!!err) {
+                    return resp.json({
+                        errcode: -1,
+                        errmsg: err,
+                        data: {}
+                    });
+                }
+                else {
+                    return res.json({
+                        errcode: '0',
+                        errmsg: 'ok',
+                        data: {
+                            classification: rows
+                        }
+                    });
+                }
+            })
+        }
+    });
+
 });
 
 
